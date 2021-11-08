@@ -5,7 +5,7 @@ import {unpkgPathPlugin} from "./plugins/unpkg-path-plugin";
 
 
 const App = () => {
-    const ref = useRef<any>();
+    const ref = useRef<esbuild.Service>();
     const [input, setInput] = useState('');
     const [code, setCode] = useState('');
 
@@ -29,7 +29,7 @@ const App = () => {
             entryPoints: ['index.js'],
             bundle: true,
             write: false,
-            plugins: [unpkgPathPlugin()],
+            plugins: [unpkgPathPlugin(input)],
             define: {
                 'process.env.NODE_ENV': '"production"',
                 global: 'window'

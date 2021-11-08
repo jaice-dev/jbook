@@ -1,16 +1,17 @@
 import * as esbuild from 'esbuild-wasm';
 import axios from "axios";
 import localForage from 'localforage'
+import { OnLoadArgs, OnResolveArgs } from "esbuild-wasm";
 
 const fileCache = localForage.createInstance({
     name: 'filecache'
 });
 
-export const unpkgPathPlugin = () => {
+export const unpkgPathPlugin = (inputCode: string) => {
     return {
         name: 'unpkg-path-plugin',
         setup(build: esbuild.PluginBuild) {
-            build.onResolve({ filter: /.*/ }, async (args: any) => {
+            build.onResolve({ filter: /.*/ }, async (args: OnResolveArgs) => {
                 console.log('onResolve', args);
                 if (args.path === 'index.js') {
                     return { path: args.path, namespace: 'a' };
@@ -29,23 +30,18 @@ export const unpkgPathPlugin = () => {
                 }
             });
 
-            build.onLoad({ filter: /.*/ }, async (args: any) => {
+            build.onLoad({ filter: /.*/ }, async (args: OnLoadArgs) => {
                 console.log('onLoad', args);
 
                 if (args.path === 'index.js') {
                     return {
                         loader: 'jsx',
-                        contents: `
-                            import {useState} from 'react'
-                            console.log(useState);
-                        `,
+                        contents: inputCode,
                     };
                 }
 
-                //Check if we have already fetched file and it is in cache
                 const cachedResult = await fileCache.getItem<esbuild.OnLoadResult>(args.path);
 
-                //if it is, return it
                 if (cachedResult) {
                     return cachedResult
                 }
@@ -58,7 +54,6 @@ export const unpkgPathPlugin = () => {
                     resolveDir: new URL('./', request.responseURL).pathname,
                 }
 
-                // store response in cache
                 await fileCache.setItem(args.path, result);
                 return result;
             });
